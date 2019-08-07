@@ -14,6 +14,7 @@ try:
     from burp import IParameter
 
     from string import Template
+    import urllib
     import array
     import uuid
     import re
@@ -24,9 +25,31 @@ except ImportError:
 
 # TODO: Write a nicer reporting template text
 
-VERSION = "0.3"
-VERSIONNAME = "adisposse"
+VERSION = "0.4"
+VERSIONNAME = "greatjones"
 EXTENDERNAME = "iRules Injection Detector"
+
+# TODO: These probably exist in a class somewhere
+INS_ENTIRE_BODY = 36
+INS_EXTENSION_PROVIDED = 65
+INS_HEADER = 32
+INS_PARAM_AMF = 7
+INS_PARAM_BODY = 1
+INS_PARAM_COOKIE = 2
+INS_PARAM_JSON = 6
+INS_PARAM_MULTIPART_ATTR = 5
+INS_PARAM_NAME_BODY = 35
+INS_PARAM_NAME_URL = 34
+INS_PARAM_URL = 0
+INS_PARAM_XML = 3
+INS_PARAM_XML_ATTR = 4
+INS_UNKNOWN = 127
+INS_URL_PATH_FILENAME = 37
+INS_URL_PATH_FOLDER = 33
+INS_URL_PATH_REST = 33
+INS_USER_PROVIDED = 64
+
+URL_ENCODED_INSERTION_POINTS = [INS_ENTIRE_BODY, INS_PARAM_BODY, INS_PARAM_JSON, INS_PARAM_NAME_URL, INS_PARAM_URL, INS_URL_PATH_FILENAME, INS_URL_PATH_FOLDER, INS_URL_PATH_REST]
 
 class BurpExtender(IBurpExtender, IScannerCheck, IExtensionStateListener, IHttpRequestResponse):
     def registerExtenderCallbacks(self, callbacks):
@@ -89,7 +112,12 @@ class BurpExtender(IBurpExtender, IScannerCheck, IExtensionStateListener, IHttpR
                            "argument list, replace them with curly bracket {}."
         issueconfidence = "Certain"
 
-        pattern = pattern.substitute(token=token)
+        pattern = pattern.substitute(token=token) # actual payload
+
+        insertionType = insertionPoint.getInsertionPointType()
+        if(insertionType in URL_ENCODED_INSERTION_POINTS):
+            # Add URL encoding of payload if payload is in request line
+            pattern = urllib.quote(pattern)
 
         # This ugly sh*t is done because IScannerInsertionPointProvider is incomplete, prove me wrong!
         template = "X" * len(pattern)
