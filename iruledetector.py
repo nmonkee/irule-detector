@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 # Burp iRulesDetector Extension
+# Christoffer Jerkeby F-Secure
+
 try:
     from burp import IBurpExtender
     from burp import IScannerCheck
@@ -20,12 +22,10 @@ except ImportError:
     print("Failed to load dependencies. This issue maybe caused"\
           "by using an unstable Jython version.")
 
-# TODO: Make the passive scanner start
-# TODO: Fix the reporting markup
-# TODO: Run testcases on F5 to find vulnerable functions
+# TODO: Write a nicer reporting template text
 
-VERSION = "0.2"
-VERSIONNAME = "wardance"
+VERSION = "0.3"
+VERSIONNAME = "adisposse"
 EXTENDERNAME = "iRules Injection Detector"
 
 class BurpExtender(IBurpExtender, IScannerCheck, IExtensionStateListener, IHttpRequestResponse):
@@ -33,13 +33,15 @@ class BurpExtender(IBurpExtender, IScannerCheck, IExtensionStateListener, IHttpR
         """Register the callbacks for the extender."""
         print("Loading...")
         self._callbacks = callbacks
-        self._callbacks.setExtensionName("Detect iRules")
+        self._callbacks.setExtensionName("iRules injector and detector")
         self._callbacks.registerScannerCheck(self)
         self._callbacks.registerExtensionStateListener(self)
         self._helpers = callbacks.getHelpers()
         self.servername = "BigIP"
         self.attackpatterns = [Template("{[TCP::respond $token]}"),
                                Template("[TCP::respond $token]"),
+                               Template("\\[TCP::respond $token\\]"),
+                               Template("; TCP::respond $token"),
                                Template("-crash")]
         print("Loaded {} v{} ({})!".format(EXTENDERNAME, VERSION, VERSIONNAME))
         return
@@ -58,7 +60,7 @@ class BurpExtender(IBurpExtender, IScannerCheck, IExtensionStateListener, IHttpR
         print("Initializing Active scan for iRule injection.")
         vulns = []
         for pattern in self.attackpatterns:
-            token = str(uuid.uuid1())  # UUID1 is generated from the client hostname
+            token = str(uuid.uuid1())
             vuln = self.inject(insertionPoint,
                                baseRequestResponse,
                                pattern,
@@ -106,6 +108,8 @@ class BurpExtender(IBurpExtender, IScannerCheck, IExtensionStateListener, IHttpR
             # Most probably an attempt need to be done with or without curly brackets.
             # TODO: Report this issue or make smart choice to change strategy,
             #  the later can cause infinite loops
+            # Timeout or conneciton reset often means syntax error or that a long request was made
+            # sometimes BIGIP crashes after to multiple injecitons.
             return None
 
         if not self._starts_with(response, token):
