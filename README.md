@@ -1,7 +1,5 @@
 # irule-detector
 
--- notorious BIG IP --
-
 One of F-Secure’s researchers (Christoffer Jerkeby - https://www.linkedin.com/in/jerkeby/) has discovered an exploitable security flaw that is present in some implementations of F5 Networks’ popular BigIP load balancer. The class of security flaw is often referred to as a Remote Code or Command Execution (RCE) vulnerability. The vulnerability when exploited permits an attacker to execute commands on the technology to affect a compromise.
 
 The issue has been disclosed to the vendor and their advisory note can be found here - https://support.f5.com/csp/article/K15650046.
